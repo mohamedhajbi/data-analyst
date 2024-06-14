@@ -1,37 +1,32 @@
-from flask import Flask, jsonify
+import dash
+from dash import dcc, html
+import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output
+from analyst.analist import download_csv, top_20 
 import os
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
-import io
-import pandas as pd
 
-app = Flask(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+server = app.server  
 
-SERVICE_ACCOUNT_FILE = 'service.json'
 FILE_ID = '1K-dP_S7se5K6h7o6e6ocKdBtetCU2Fyc'
 
-def download_csv(file_id):
-    SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-    drive_service = build('drive', 'v3', credentials=creds)
+app.layout = html.Div([
+    html.Div(id='graph-container'),
+    dcc.Interval(
+        id='interval-component',
+        interval=60 * 1000,  
+        n_intervals=0
+    )
+])
 
-    request = drive_service.files().get_media(fileId=file_id)
-    fh = io.BytesIO()
-    downloader = MediaIoBaseDownload(fh, request)
-    done = False
-    while not done:
-        status, done = downloader.next_chunk()
-        print(f"Download {int(status.progress() * 100)}%.")
-
-    fh.seek(0)
-    return pd.read_csv(fh)
-
-@app.route('/')
-def index():
+@app.callback(
+    Output('graph-container', 'children'),
+    [Input('interval-component', 'n_intervals')]
+)
+def update_graph(n_intervals):
     df = download_csv(FILE_ID)
-    return df.head().to_json(orient='records')
+    figure = top_20(df)
+    return dcc.Graph(figure=figure)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run_server(debug=True)
