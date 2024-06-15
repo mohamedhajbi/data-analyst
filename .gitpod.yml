@@ -1,0 +1,18 @@
+tasks:
+  - name: Install dependencies
+    before: pip install --upgrade pip
+    command: pip install -r requirements.txt
+
+  - name: Run Flask app
+    before: |
+      export FLASK_APP=app.py
+      export FLASK_ENV=development
+    command: flask run --host=0.0.0.0
+
+ports:
+  - port: 5000
+    onOpen: open-preview
+
+vscode:
+  extensions:
+    - ms-python.python

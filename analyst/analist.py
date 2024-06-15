@@ -34,7 +34,6 @@ def download_csv(file_id):
     df['published_year'] = df['publishedAt'].dt.year
     df['published_hour'] = df['publishedAt'].dt.hour
     df['published_day'] = df['publishedAt'].dt.strftime('%A')
-    df['ratio'] = df['likes'] / (df['likes'] + df['dislikes'])
     df['views_cat'] = df.views.apply(views_cat)
 
     return df
@@ -118,3 +117,19 @@ def pie_chart(df):
     fig = px.pie(appreanf_f_view, values='counts', names='views_cat', title='Percentage of appearance as a function of views category')
     
     return fig
+
+def ratio(df):
+    df['ratio'] = df['likes'] / (df['likes'] + df['dislikes'])
+    ratio_cat = df['ratio'].value_counts().sort_index()
+    figs = px.scatter(x=ratio_cat.index, y=ratio_cat.values, labels={'x': 'Like/Dislike Ratio', 'y': 'Count'}, title='Number of appearance as a function of likes dislikes ratio')
+    return figs
+
+def best_day_to_publish(df):
+    day_cat = df.groupby('published_day').size().reset_index(name='counts').sort_values(by='counts', ascending=True)
+    sorter = ['Monday','Tueday','Wednesday','Thursday','Friday','Saturday','Sunday']
+    sorterIndex = dict(zip(sorter, range(len(sorter))))
+    day_cat['rank'] = day_cat['published_day'].map(sorterIndex)
+    day_cat = day_cat.sort_values(by='rank')
+    day_cat.drop(['rank'], axis=1, inplace=True)
+    fig_days = px.bar(x=day_cat.published_day, y=day_cat.counts, labels={'x': 'Day of publication', 'y': 'Number of appearance'}, title='Probability of apparition as a function of the day of publication') 
+    return fig_days
